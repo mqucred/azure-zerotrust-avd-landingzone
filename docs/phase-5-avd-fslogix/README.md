@@ -132,8 +132,9 @@ A profile folder named after the user's SID appeared on the share.
 
 ![Profile folder](../images/phase-5/09-phase5-fslogix-profile-folder.png)
 
-[If you screenshotted it: the `.vhdx` file inside the folder is the definitive proof the
-container mounted. Add it as `10-phase5-fslogix-vhdx.png`.]
+![10-phase5-fslogix-vhd.png](../images/phase-5/10-phase5-fslogix-vhd.png)
+
+The `.vhd` file inside the folder is the definitive proof the container mounted.  
 
 ## Issues and fixes
 
@@ -168,18 +169,3 @@ container mounted. Add it as `10-phase5-fslogix-vhdx.png`.]
 
 
 
----
-
-Before you commit it
-
-Image list. I invented ten filenames that follow the convention. Match them to what you actually saved: the deployment failure (vmCreation-linkedTemplate screenshot), the connection troubleshoot, the egress test, the health checks (the DomainJoinedCheck failed output), the Available status, the FSLogix registry script, the hostname and whoami session, and the profile folder. Delete any image line you don't have a file for.
-
-Task order. I placed the NAT Gateway step before the DSC redeploy, as it happened. You created the DSC extension again after the NAT Gateway existed, but you also removed the route table then, so keep those two steps together.
-
-The Set-AzVMExtension command is from your Cloud Shell screenshot. I dropped the variables' contents ($PublicSettings, $ProtectedSettings) on purpose. The ProtectedSettings block contains the registration token, so never paste it.
-
-The TypeHandlerVersion 2.73 matches what you used. The DSC extension version may change, so note the date.
-
-Blur the subscription and tenant details in the screenshots, and check that none shows the registration token.
-
-Item I couldn't confirm: the "join without -OUPath" fix. Your second attempt's output wasn't in the chat, only the health check afterward showing the host joined, so check what you actually ran. Remove the sentence if you used a corrected OU path instead.
