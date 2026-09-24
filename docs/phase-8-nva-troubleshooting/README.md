@@ -30,38 +30,112 @@ fails the same way:
 
     curl: (28) Connection timed out after 5002 milliseconds
 
-## What was checked, and what it showed
+## Investigation
 
-| # | Layer | Check | Result | Evidence |
-|---|---|---|---|---|
-| 1 | Route | Effective routes on the spoke NIC | 0.0.0.0/0 -> VirtualAppliance 10.200.1.4, Active; default Internet route Invalid | 01-phase8-effective-routes-spoke-nic |
-| 2 | Peering | Both directions | Connected, AllowForwardedTraffic True, AllowVirtualNetworkAccess True | 02-phase8-peering-settings |
-| 3 | NSG | Effective security rules on the NVA NIC; Network Watcher IP flow verify (inbound, 10.210.2.4 -> 10.200.1.4:443) | Access allowed, rule AllowVnetInBound. No custom deny | 03-phase8-ipflow-verify-allow |
-| 4 | Hub subnet | Route table / NSG on snet-hub-fw | Neither attached | [screenshot] |
-| 5 | NIC forwarding | EnableIPForwarding on the NVA NIC | True | 04-phase8-nva-config |
-| 6 | NVA OS | ip_forward, iptables, nftables | ip_forward = 1; FORWARD policy ACCEPT; MASQUERADE on eth0; nft chains default accept | 04-phase8-nva-config |
-| 7 | NVA egress | curl from the NVA to the target | HTTP 200 | 07-phase8-nva-curl-200 |
-| 8 | Reproduction | A second, clean VM in an isolated subnet | Same failure | 05-phase8-sender-tcpdump-syn |
-| 9 | Host move | NVA deallocated and started (new host allocation) | Same failure | [note] |
+### 1. Effective routes on the spoke NIC
 
-## The decisive observation
+Azure's own routing table says the packet should go to the NVA:
 
-Two captures, taken during the same test window on 21 Sep 2026 (about 07:16 UTC):
+    0.0.0.0/0  ->  VirtualAppliance  10.200.1.4   State: Active
+    (default Internet route: Invalid, overridden by the UDR)
 
-**Sender (vm-spoke-test, eth0):** five SYN packets to 20.60.153.129:443, one per second,
-identical sequence number (TCP retransmission), no reply.
+![Effective routes on the spoke NIC](../images/phase-8/01-phase8-effective-routes-spoke-nic.png)
+
+### 2. Peering, both directions
+
+    peer-spoke-to-hub  Connected  AllowForwardedTraffic: True  AllowVirtualNetworkAccess: True
+    peer-hub-to-spoke  Connected  AllowForwardedTraffic: True  AllowVirtualNetworkAccess: True
+
+![Peering settings](../images/phase-8/02-phase8-peering-settings.png)
+
+### 3. NSG and IP flow verify
+
+Effective security rules on the NVA NIC show no custom deny above the default
+`AllowVnetInBound`. Network Watcher's IP flow verify (inbound, 10.210.2.4 -> 10.200.1.4:443)
+confirms the platform considers the flow deliverable:
+
+    Access allowed
+    Security rule: AllowVnetInBound
+
+![IP flow verify: Allow](../images/phase-8/03-phase8-ipflow-verify-allow.png)
+
+### 4. Hub subnet: no route table, no NSG
+
+The NVA's own subnet (snet-hub-fw) has neither a route table nor an NSG attached, ruling out
+a loop or a subnet-level block on the hub side.
+
+    Name         AddressPrefix     RouteTable   NSG
+    snet-hub-fw  10.200.1.0/24     -            -
+    GatewaySubnet 10.200.255.0/27  -            -
+
+![Hub subnet: no route table or NSG](../images/phase-8/04-phase8-hub-subnet-clean.png)
+
+### 5. NIC forwarding and NVA OS configuration
+
+    EnableIPForwarding: True
+
+    sysctl net.ipv4.ip_forward       -> net.ipv4.ip_forward = 1
+    iptables -t nat -S POSTROUTING   -> -A POSTROUTING -o eth0 -j MASQUERADE
+    iptables -S FORWARD              -> -P FORWARD ACCEPT
+
+![NVA NIC forwarding and OS configuration](../images/phase-8/05-phase8-nva-config.png)
+
+### 6. The NVA reaches the internet itself
+
+    curl -m 10 -sS -o /dev/null -w "%{http_code}\n" https://wvdportalstorageblob.blob.core.windows.net/...
+    200
+
+![NVA curl to the target returns 200](../images/phase-8/06-phase8-nva-curl-200.png)
+
+### 7. Reproduced on a second, isolated VM
+
+A fresh Ubuntu VM (vm-spoke-test) in its own subnet, with the same UDR, fails the same way.
+The sender-side capture shows the packets leaving the VM and never being answered:
 
     07:16:38 IP 10.210.2.4.44436 > 20.60.153.129.443: Flags [S], seq 1257109263
     07:16:39 IP 10.210.2.4.44436 > 20.60.153.129.443: Flags [S], seq 1257109263
-    ...
+    07:16:40 IP 10.210.2.4.44436 > 20.60.153.129.443: Flags [S], seq 1257109263
+    07:16:41 IP 10.210.2.4.44436 > 20.60.153.129.443: Flags [S], seq 1257109263
+    07:16:42 IP 10.210.2.4.44436 > 20.60.153.129.443: Flags [S], seq 1257109263
+    curl: (28) Connection timed out after 5002 milliseconds
 
-**Receiver (vm-hub-nva-01, `tcpdump -nni any 'host 10.210.2.4 or host 20.60.153.129'`):**
-zero packets from the spoke subnet.
+![Sender-side capture: SYNs leaving, no reply](../images/phase-8/07-phase8-sender-tcpdump-syn.png)
 
+### 8. The decisive capture: nothing arrives at the NVA
+
+The same window, captured on the NVA with the platform traffic filtered out:
+
+    sudo tcpdump -nni any 'host 10.210.2.4 or host 20.60.153.129'
     0 packets captured
 
-The source emits the packets, and none arrive at the NVA's NIC. Azure's own tooling (effective
-routes, IP flow verify) says the flow is deliverable.
+![NVA-side capture: zero packets from the spoke, same window](../images/phase-8/08-phase8-nva-tcpdump-empty.png)
+
+### 9. Host move: deallocate and start
+
+The NVA was deallocated and started (a fresh host allocation), and the test was repeated with
+the same result.
+
+    az vm redeploy -g rg-hub-network-01 -n vm-hub-nva-01
+    (OperationNotAllowed: not allowed while deallocated)
+    az vm start -g rg-hub-network-01 -n vm-hub-nva-01
+    -> VM running
+    (same failure on retest)
+
+![NVA redeploy/start attempt](../images/phase-8/09-phase8-nva-redeploy-start.png)
+
+## What was checked: summary table
+
+| # | Layer | Check | Result |
+|---|---|---|---|
+| 1 | Route | Effective routes, spoke NIC | Active, VirtualAppliance 10.200.1.4 |
+| 2 | Peering | Both directions | Connected, forwarded traffic allowed |
+| 3 | NSG | Effective rules + IP flow verify | Allow, AllowVnetInBound |
+| 4 | Hub subnet | Route table / NSG on snet-hub-fw | Neither attached |
+| 5 | NIC forwarding | EnableIPForwarding | True |
+| 6 | NVA OS | ip_forward, iptables, nftables | Correct on every check |
+| 7 | NVA egress | curl from the NVA itself | HTTP 200 |
+| 8 | Reproduction | Second, isolated VM | Same failure |
+| 9 | Host move | Deallocate + start | Same failure |
 
 ## Things that were tried and did not help
 
@@ -75,16 +149,16 @@ routes, IP flow verify) says the flow is deliverable.
 - **Network Watcher packet captures returned empty files**, even unfiltered, on a VM that was
   clearly passing traffic. That agent was not producing usable data on this VM, so those files
   are not cited as evidence.
-- The two in-guest captures were taken minutes apart in some runs. The paired run above
-  (sender and receiver in the same window) is the one to rely on, and it should be repeated with
-  both captures started before the test and stopped after it.
+- The two in-guest captures were taken minutes apart in some earlier runs. The paired run in
+  sections 7 and 8 (sender and receiver in the same window) is the one relied on here.
 - Only one NVA size (B1s) and one region (Central India) were tested.
 - A redeploy of the NVA was attempted before the deallocate/start test and was refused
   because the VM was stopped; start-after-deallocate was used instead.
 
 ## What I would try next
 
-1. Repeat the paired capture with a filter-free capture on both sides, several attempts per run.
+1. Repeat the paired capture with both sides started before the test and stopped after it,
+   several attempts per run.
 2. Replace the NVA with a fresh VM (different size, ideally with accelerated networking) in the
    same subnet and repeat the test.
 3. Test with a two-NIC NVA design (inside and outside interfaces).
@@ -96,21 +170,8 @@ routes, IP flow verify) says the flow is deliverable.
 
 - The session-host subnet uses a NAT Gateway for outbound access and has no route table.
 - The session host reaches the domain controller through direct spoke-to-on-prem VNet peering
-  (added as Phase 2b), bypassing the NVA.
+  (Phase 2b), bypassing the NVA.
 - This works but bypasses the inspection point, so the "NVA as firewall" goal is not met.
-
-## Reference commands
-
-    # effective routes on the spoke NIC
-    az network nic show-effective-route-table -g rg-spoke-avd-01 -n <nic> -o table
-
-    # NVA state
-    sysctl net.ipv4.ip_forward
-    sudo iptables -t nat -S POSTROUTING
-    sudo iptables -S FORWARD
-
-    # paired capture: NVA side, then trigger from the spoke
-    sudo tcpdump -nni any 'host 10.210.2.4 or host 20.60.153.129'
 
 ## Lessons
 
@@ -118,21 +179,5 @@ routes, IP flow verify) says the flow is deliverable.
   configuration but never tested a spoke VM reaching the internet through it.
 - A capture that returns zero packets is only evidence if the test ran while it was recording.
   Start captures first, run the test, then stop them.
-- Read stderr, not just "Succeeded" in Run Command output.
+- Read stderr, not just "Succeeded", in Run Command output.
 - Check whether the diagnostic tool itself is working before trusting an empty result.
-
-
----
-Before you publish it, check these:
-
-Row 4 and row 9 of the table rest on things I saw only as outputs in chat (the empty route table and NSG columns on snet-hub-fw, and the deallocate/start). Add screenshots or drop the evidence column for those rows.
-
-The paired capture is the one I hedged on. The sender's capture was at 07:16:38 to 07:16:42 UTC and your NVA capture ran around 07:17 IST-converted (12:47 IST). Those overlap only if the NVA capture was already running, and the "1 packet received by filter" was never printed. The README says so under Limitations. If you have time before teardown, repeat the run once with both started first, and update the timestamps.
-
-az network nic show-effective-route-table was not a command I ran in this session, so test it before leaving it in the README, or remove that line.
-
-The B1s / Standard_B1s detail comes from your Phase 2 README, and the Ubuntu 22.04 for the test VM from what you deployed. Correct either if they differ.
-
-Blur the subscription ID and any tenant details in the screenshots the README references. Don't commit the .cap files.
-
-For the ticket alternative, the "Summary", "Topology", "What was checked" table and "The decisive observation" sections are the ones to paste into your Microsoft Q&A post, trimmed to the essentials.

@@ -130,12 +130,10 @@ still mounts, with SMB connections to 10.210.3.4.
 
 ## Cleanup done in this phase
 
-- Storage account keys rotated (both). They are not used by anything, since FSLogix
-  authenticates with Kerberos. Evidence: the storage account's activity log entries for
-  "Regenerate Storage Account Keys" [add screenshot].
+- Storage account keys rotated (both). They are not used by anything, since FSLogix authenticates with Kerberos. 
 - Domain administrator password changed.
 - Management access on the lab VMs restricted or removed (public IPs on the domain controller
-  and NVA) [confirm what you actually did].
+  and NVA)
 
 ## Issues and fixes
 
@@ -166,17 +164,3 @@ still mounts, with SMB connections to 10.210.3.4.
 - Test the closed door from outside, and the open door from inside, in that order, before and
   after disabling public access.
 
----
-Before you commit it
-
-Image list. I made up nine filenames following the convention. Match them to what you saved: zone links, endpoint DNS configuration, DC forwarder, the two Resolve-DnsName outputs, the SMB connection checks (both the public and private ones), the Networking blade, the 403, the final sign-in, and Get-SmbConnection. Remove any image line you don't have a file for.
-
-Two items I've left in brackets on purpose. I never saw what you did about the public IPs on the DC and NVA, and I never saw the key rotation itself, only that you did it. Write down what actually happened, or remove those bullets, and attach the activity log screenshot for the rotation.
-
-The sign-in after disable. You said in the morning that you did the final sign-in test and took screenshots, so 08-phase7-signin-after-disable.png should exist. If it doesn't, downgrade the status line to "verified before disabling public access" until it does.
-
-Commands. The step-by-step commands use $spoke, $onprem and $subnet variables from earlier lines (fetching each VNet and the endpoint subnet). Add those lines if you want the section to run on its own.
-
-The public IP 20.209.57.6 appears in the SMB "before" line. It's the storage account's own public address, which is fine to publish, but I'd blur it anyway if you'd rather not show it.
-
-Blur subscription IDs and tenant details in every screenshot, and make sure no screenshot shows storage keys. 

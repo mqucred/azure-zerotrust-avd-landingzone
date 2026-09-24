@@ -256,17 +256,3 @@ email arrived without any action.
 - Read the whole chain (event, rule, incident, automation, playbook run, email) rather than
   trusting one green tick.
 
----
-## Before you commit it
-
-Image list. I made up thirteen filenames. Match them to what you saved, and delete any line you have no file for. The two most important are 03 (the enforced Conditional access tab with Success) and 10 (the incident detail with the avduser01 count).
-
-The PIM duration. Your activation window showed 11:55 am to 7:55 pm, which is eight hours, so I wrote "[8 hours]". Keep that, or change the text if you configured a different maximum.
-
-The suppression row says "[Suppression for 1 hour, or note as a follow-up]". You told me you did the Sentinel tidy-up (suppression and closing incidents 7 and 9) in the morning. If so, write that it's on, and add one screenshot. If not, leave it as a follow-up.
-
-The playbook's first run. I described a manual run then an automatic one. Your Run history showed 16:31 (manual) and 17:35 (automatic, same minute as incident 9), and you confirmed the email arrived without action. If you don't have the automation rule screenshot, remove image 12 and say it was verified by the run history and the email.
-
-Security. Blur the tenant domain, the break-glass UPN and any email in the screenshots. The avduser01 UPN contains your tenant name, so blur it too. Don't include the break-glass password or the MFA method details anywhere.
-
-Cost claim: "10 GB/day free during the trial" comes from the trial notice you showed me, so recheck it against your notice before publishing.
