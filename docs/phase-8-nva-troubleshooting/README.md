@@ -1,6 +1,6 @@
 # Phase 8: NVA Path Troubleshooting (Case Study)
 
-**Status:** Open. Escalated to Microsoft Q&A [add link]. Workaround in use.
+**Status:** Open. Escalated to Microsoft Q&A [Link](https://learn.microsoft.com/en-us/answers/questions/6016649/udr-next-hop-to-an-nva-in-a-peered-hub-vnet-packet). Workaround in use.
 
 ## Summary
 
