@@ -1,0 +1,14 @@
+Results
+    Test(s) ran: ,Connectivity; NSG diagnostic; Next hop; Port scanner
+    Source: ,avd-sh-0
+    Destination: ,wvdportalstorageblob.blob.core.windows.net
+    
+Diagnostic tests
+Test,Status,Details
+Connectivity test,Unreachable,Probes sent: 316; probes failed: 316
+
+Hop details
+Name,Status,IP address,Next hop,Round Trip Time,Errors
+avd-sh-0,Healthy,10.210.1.4,10.200.1.4,,
+ipconfig1,Healthy,10.200.1.4,20.60.153.129,,
+Internet,Healthy,20.60.153.129,,,

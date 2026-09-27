@@ -1,0 +1,18 @@
+# ==============================================================================
+# Phase 6: SecOps Hardening (PIM, Conditional Access, Sentinel, SOAR)
+# ==============================================================================
+# PIM role settings, Conditional Access policy creation, Sentinel Content Hub
+# installs, the analytics rule, the automation rule, and the Logic App were all
+# built via the Azure/Defender portal GUI. The commands below are the ones
+# actually run in PowerShell for this phase.
+
+Connect-AzAccount -SubscriptionId "<subscription-id>" -TenantId "<tenant-id>"
+
+# --- Workspace, with a daily ingestion cap ---
+New-AzOperationalInsightsWorkspace -ResourceGroupName "rg-hub-network-01" -Name "law-central-secops-01" `
+    -Location "centralindia" -Sku "PerGB2018"
+Set-AzOperationalInsightsWorkspace -ResourceGroupName "rg-hub-network-01" -Name "law-central-secops-01" `
+    -DailyQuotaGb 1
+
+
+# See sentinel/analytics-multiple-failed-signins.json in the repo for the full definition.

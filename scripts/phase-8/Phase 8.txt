@@ -1,0 +1,64 @@
+# ==============================================================================
+# Phase 8: NVA Path Troubleshooting (Case Study)
+# ==============================================================================
+
+Connect-AzAccount -SubscriptionId "<subscription-id>" -TenantId "<tenant-id>"
+
+$rgHub   = "rg-hub-network-01"
+$rgSpoke = "rg-spoke-avd-01"
+
+# --- 1. Effective routes on the spoke NIC ---
+$nic = Get-AzNetworkInterface -ResourceGroupName $rgSpoke |
+    Where-Object { $_.VirtualMachine.Id -like "*vm-spoke-test*" }
+Get-AzEffectiveRouteTable -NetworkInterfaceName $nic.Name -ResourceGroupName $rgSpoke |
+    Where-Object { $_.AddressPrefix -contains "0.0.0.0/0" } |
+    Select-Object Source, State, AddressPrefix, NextHopType, NextHopIpAddress
+
+# --- 2. Peering, both directions ---
+Get-AzVirtualNetworkPeering -ResourceGroupName $rgHub   -VirtualNetworkName "vnet-hub-prod-01" |
+    Select-Object Name, PeeringState, AllowForwardedTraffic, AllowVirtualNetworkAccess
+Get-AzVirtualNetworkPeering -ResourceGroupName $rgSpoke -VirtualNetworkName "vnet-spoke-avd-prod-01" |
+    Select-Object Name, PeeringState, AllowForwardedTraffic, AllowVirtualNetworkAccess
+
+# --- 3. NSG: effective rules on the NVA NIC ---
+$nvaNic = Get-AzNetworkInterface -ResourceGroupName $rgHub -Name "vm-hub-nva-01830"
+Get-AzEffectiveNetworkSecurityGroup -NetworkInterfaceName $nvaNic.Name -ResourceGroupName $rgHub |
+    Select-Object -ExpandProperty EffectiveSecurityRules |
+    Where-Object { $_.Direction -eq "Inbound" } |
+    Select-Object Name, Priority, Access, Protocol, SourceAddressPrefix, DestinationPortRange
+# IP flow verify was run in the portal: Network Watcher -> IP flow verify
+#   VM vm-hub-nva-01, NIC vm-hub-nva-01830, Inbound, TCP, local 10.200.1.4:443, remote 10.210.2.4:50000
+#   Result: Access allowed, rule AllowVnetInBound
+
+# --- 4. Hub subnet: route table / NSG check ---
+$hubVnet = Get-AzVirtualNetwork -ResourceGroupName $rgHub -Name "vnet-hub-prod-01"
+$hubVnet.Subnets |
+    Select-Object Name, AddressPrefix, @{N='RouteTable';E={$_.RouteTable.Id}}, @{N='NSG';E={$_.NetworkSecurityGroup.Id}}
+
+# --- 5. NIC IP forwarding ---
+(Get-AzNetworkInterface -ResourceGroupName $rgHub -Name "vm-hub-nva-01830").EnableIPForwarding
+
+# --- 6. Test subnet with an isolated route table, and a throwaway test VM ---
+$rt = Get-AzRouteTable -ResourceGroupName $rgSpoke -Name "rt-spoke-to-hub"
+$vnetSpoke = Get-AzVirtualNetwork -ResourceGroupName $rgSpoke -Name "vnet-spoke-avd-prod-01"
+Add-AzVirtualNetworkSubnetConfig -Name "snet-test" -AddressPrefix "10.210.2.0/24" -VirtualNetwork $vnetSpoke -RouteTable $rt
+Set-AzVirtualNetwork -VirtualNetwork $vnetSpoke
+# vm-spoke-test was created via the portal (Ubuntu 22.04, B1s, no public IP)
+
+# --- 7. Reproduction: curl from the test VM (via Run Command) ---
+$curlTest = 'curl -m 10 -sS -o /dev/null -w "%{http_code}\n" https://20.60.153.129 --insecure'
+Invoke-AzVMRunCommand -ResourceGroupName $rgSpoke -VMName "vm-spoke-test" -CommandId "RunShellScript" -ScriptString $curlTest
+
+# --- Sender-side paired capture (curl + local tcpdump in one call) ---
+$pairedTest = 'ip -br addr; timeout 8 tcpdump -nni eth0 -c 5 "host 20.60.153.129" & sleep 1; curl -m 5 -sS -o /dev/null https://20.60.153.129 --insecure; wait'
+Invoke-AzVMRunCommand -ResourceGroupName $rgSpoke -VMName "vm-spoke-test" -CommandId "RunShellScript" -ScriptString $pairedTest
+
+
+# --- 9. NVA host move: redeploy (fails while deallocated) then start ---
+Redeploy-AzVM -ResourceGroupName $rgHub -Name "vm-hub-nva-01"   # errors if VM is deallocated
+Start-AzVM   -ResourceGroupName $rgHub -Name "vm-hub-nva-01"
+Get-AzVM -Status -ResourceGroupName $rgHub -Name "vm-hub-nva-01" | Select-Object -ExpandProperty Statuses
+
+# --- Network Watcher packet capture attempts (returned empty results; not cited as evidence) ---
+az network watcher packet-capture create -g $rgHub --vm "vm-hub-nva-01" -n "cap-nva-spoke3" `
+    --storage-account "stcapnva8293" --time-limit 120

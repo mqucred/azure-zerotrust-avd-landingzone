@@ -1,0 +1,212 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2014-04-01-preview/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "natGatewayApiVersion": {
+            "type": "string",
+            "defaultValue": "2024-05-01"
+        },
+        "publicIpAddressApiVersion": {
+            "type": "string",
+            "defaultValue": "2024-05-01"
+        },
+        "publicIpPrefixApiVersion": {
+            "type": "string",
+            "defaultValue": "2024-05-01"
+        },
+        "natGatewayName": {
+            "type": "string"
+        },
+        "location": {
+            "type": "string"
+        },
+        "idleTimeout": {
+            "type": "int"
+        },
+        "sku": {
+            "type": "string"
+        },
+        "zones": {
+            "type": "array"
+        },
+        "publicIpAddressesIPv4": {
+            "type": "array",
+            "defaultValue": [],
+            "metadata": {
+                "description": "List of new and existing IPV4 public IP addresses to associate with the NAT Gateway. This array should contain objects in the form { id: <resourceId> }."
+            }
+        },
+        "publicIpAddressesIPv6": {
+            "type": "array",
+            "defaultValue": [],
+            "metadata": {
+                "description": "List of new and existing IPv6 public IP addresses to associate with the NAT Gateway. This array should contain objects in the form { id: <resourceId> }."
+            }
+        },
+        "publicIpPrefixesIPv4": {
+            "type": "array",
+            "defaultValue": [],
+            "metadata": {
+                "description": "List of new and existing IPv4 public IP prefixes to associate with the NAT Gateway. This array should contain objects in the form { id: <resourceId> }."
+            }
+        },
+        "publicIpPrefixesIPv6": {
+            "type": "array",
+            "defaultValue": [],
+            "metadata": {
+                "description": "List of new and existing IPv6 public IP prefixes to associate with the NAT Gateway. This array should contain objects in the form { id: <resourceId> }."
+            }
+        },
+        "tags": {
+            "type": "object",
+            "defaultValue": {}
+        },
+        "deployNewPublicIp": {
+            "type": "bool",
+            "defaultValue": false
+        },
+        "publicIpName": {
+            "type": "string",
+            "defaultValue": "nat-pip"
+        },
+        "publicIpVersion": {
+            "type": "string",
+            "defaultValue": "IPv4",
+            "allowedValues": [
+                "IPv4",
+                "IPv6"
+            ]
+        },
+        "deployNewPublicIpPrefix": {
+            "type": "bool",
+            "defaultValue": false
+        },
+        "publicIpPrefixName": {
+            "type": "string",
+            "defaultValue": "nat-prefix"
+        },
+        "publicIpPrefixLength": {
+            "type": "int",
+            "defaultValue": 28,
+            "metadata": {
+                "description": "The prefix length for the new public IP prefix (e.g., 28 for /28)"
+            }
+        },
+        "publicIpPrefixVersion": {
+            "type": "string",
+            "defaultValue": "IPv4",
+            "allowedValues": [
+                "IPv4",
+                "IPv6"
+            ]
+        },
+        "sourceVirtualNetwork": {
+            "type": "string",
+            "defaultValue": ""
+        },
+        "nat64": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "NAT64 value for StandardV2 NAT Gateways. Allowed values: Enabled, Disabled, or empty to omit."
+            }
+        },
+        "virtualNetwork": {
+            "type": "object",
+            "defaultValue": {}
+        },
+        "virtualNetworkResourceGroup": {
+            "type": "string",
+            "defaultValue": ""
+        },
+        "publicIpAddressServiceTag": {
+            "type": "array",
+            "defaultValue": []
+        },
+        "publicIpPrefixServiceTag": {
+            "type": "array",
+            "defaultValue": []
+        }
+    },
+    "variables": {
+        "sourceVirtualNetworkObject": "[if(empty(parameters('sourceVirtualNetwork')), null(), createObject('id', parameters('sourceVirtualNetwork')))]",
+        "nat64Value": "[if(empty(parameters('nat64')), null(), parameters('nat64'))]"
+    },
+    "resources": [
+        {
+            "condition": "[parameters('deployNewPublicIp')]",
+            "type": "Microsoft.Network/publicIPAddresses",
+            "apiVersion": "[parameters('publicIpAddressApiVersion')]",
+            "name": "[parameters('publicIpName')]",
+            "location": "[parameters('location')]",
+            "sku": {
+                "name": "[parameters('sku')]"
+            },
+            "zones": "[parameters('zones')]",
+            "properties": {
+                "publicIPAllocationMethod": "Static",
+                "publicIpAddressVersion": "[parameters('publicIpVersion')]",
+                "ipTags": "[parameters('publicIpAddressServiceTag')]"
+            }
+        },
+        {
+            "condition": "[parameters('deployNewPublicIpPrefix')]",
+            "type": "Microsoft.Network/publicIPPrefixes",
+            "apiVersion": "[parameters('publicIpPrefixApiVersion')]",
+            "name": "[parameters('publicIpPrefixName')]",
+            "location": "[parameters('location')]",
+            "sku": {
+                "name": "[parameters('sku')]",
+                "tier": "Regional"
+            },
+            "zones": "[parameters('zones')]",
+            "properties": {
+                "prefixLength": "[parameters('publicIpPrefixLength')]",
+                "publicIpAddressVersion": "[parameters('publicIpPrefixVersion')]",
+                "ipTags": "[parameters('publicIpPrefixServiceTag')]"
+            }
+        },
+        {
+            "apiVersion": "[parameters('natGatewayApiVersion')]",
+            "type": "Microsoft.Network/natGateways",
+            "name": "[parameters('natGatewayName')]",
+            "location": "[parameters('location')]",
+            "zones": "[parameters('zones')]",
+            "sku": {
+                "name": "[parameters('sku')]"
+            },
+            "tags": "[parameters('tags')]",
+            "properties": {
+                "publicIPAddresses": "[parameters('publicIpAddressesIPv4')]",
+                "publicIPAddressesV6": "[parameters('publicIpAddressesIPv6')]",
+                "publicIPPrefixes": "[parameters('publicIpPrefixesIPv4')]",
+                "publicIPPrefixesV6": "[parameters('publicIpPrefixesIPv6')]",
+                "idleTimeoutInMinutes": "[parameters('idleTimeout')]",
+                "sourceVirtualNetwork": "[variables('sourceVirtualNetworkObject')]",
+                "nat64": "[variables('nat64Value')]"
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/publicIPAddresses', parameters('publicIpName'))]",
+                "[resourceId('Microsoft.Network/publicIPPrefixes', parameters('publicIpPrefixName'))]"
+            ]
+        },
+        {
+            "condition": "[not(empty(parameters('virtualNetwork')))]",
+            "apiVersion": "2017-05-10",
+            "type": "Microsoft.Resources/deployments",
+            "name": "VnetAssociation",
+            "resourceGroup": "[parameters('virtualNetworkResourceGroup')]",
+            "dependsOn": [
+                "[concat('Microsoft.Network/natGateways/', parameters('natGatewayName'))]"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "template": {
+                    "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+                    "contentVersion": "1.0.0.0",
+                    "resources": "[array(parameters('virtualNetwork'))]"
+                }
+            }
+        }
+    ]
+}

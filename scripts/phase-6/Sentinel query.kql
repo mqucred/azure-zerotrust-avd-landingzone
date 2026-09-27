@@ -1,0 +1,9 @@
+# KQL used by the rule:
+#   SigninLogs
+#   | where ResultType == 50126
+#   | summarize FailedCount = count() by UserPrincipalName
+#   | where FailedCount >= 3
+
+# --- Verification queries, run in Advanced Hunting / Log Analytics Logs blade ---
+# SecurityEvent | where Computer contains "avd-sh-0" | take 10
+# SigninLogs    | where UserPrincipalName startswith "avduser01" | take 10

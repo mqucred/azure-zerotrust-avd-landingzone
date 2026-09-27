@@ -1,0 +1,159 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "natGatewayApiVersion": {
+            "value": "2025-07-01"
+        },
+        "publicIpAddressApiVersion": {
+            "value": "2025-01-01"
+        },
+        "publicIpPrefixApiVersion": {
+            "value": "2024-05-01"
+        },
+        "natGatewayName": {
+            "value": "natgw-avd-spoke"
+        },
+        "location": {
+            "value": "Central India"
+        },
+        "idleTimeout": {
+            "value": 4
+        },
+        "sku": {
+            "value": "Standard"
+        },
+        "publicIpAddressesIPv4": {
+            "value": [
+                {
+                    "id": "/subscriptions/Sub-id/resourceGroups/rg-spoke-avd-01/providers/Microsoft.Network/publicIPAddresses/nat-pip"
+                }
+            ]
+        },
+        "publicIpAddressesIPv6": {
+            "value": []
+        },
+        "publicIpPrefixesIPv4": {
+            "value": []
+        },
+        "publicIpPrefixesIPv6": {
+            "value": []
+        },
+        "zones": {
+            "value": []
+        },
+        "tags": {
+            "value": {}
+        },
+        "deployNewPublicIp": {
+            "value": false
+        },
+        "publicIpName": {},
+        "publicIpVersion": {},
+        "deployNewPublicIpPrefix": {
+            "value": false
+        },
+        "publicIpPrefixName": {},
+        "publicIpPrefixLength": {},
+        "publicIpPrefixVersion": {},
+        "sourceVirtualNetwork": {},
+        "nat64": {},
+        "virtualNetwork": {
+            "value": {
+                "name": "vnet-spoke-avd-prod-01",
+                "id": "/subscriptions/Sub-id/resourceGroups/rg-spoke-avd-01/providers/Microsoft.Network/virtualNetworks/vnet-spoke-avd-prod-01",
+                "type": "Microsoft.Network/virtualNetworks",
+                "location": "centralindia",
+                "tags": {
+                    "Location": "CentralIndia",
+                    "Project": "ZeroTrustAVD",
+                    "Phase": "Phase2",
+                    "Environment": "Lab"
+                },
+                "properties": {
+                    "provisioningState": "Succeeded",
+                    "resourceGuid": "2dc445c4-3e2b-4a03-82ef-b201a13f886b",
+                    "addressSpace": {
+                        "addressPrefixes": [
+                            "10.210.0.0/16"
+                        ]
+                    },
+                    "privateEndpointVNetPolicies": "Disabled",
+                    "dhcpOptions": {
+                        "dnsServers": []
+                    },
+                    "subnets": [
+                        {
+                            "name": "snet-avd-sessionhosts",
+                            "id": "/subscriptions/Sub-id/resourceGroups/rg-spoke-avd-01/providers/Microsoft.Network/virtualNetworks/vnet-spoke-avd-prod-01/subnets/snet-avd-sessionhosts",
+                            "etag": "W/\"d305486c-73b4-4d63-a812-a241002cd77b\"",
+                            "properties": {
+                                "provisioningState": "Succeeded",
+                                "addressPrefix": "10.210.1.0/24",
+                                "ipConfigurations": [
+                                    {
+                                        "id": "/subscriptions/Sub-id/resourceGroups/RG-SPOKE-AVD-01/providers/Microsoft.Network/networkInterfaces/AVD-SH-0-NIC/ipConfigurations/IPCONFIG"
+                                    }
+                                ],
+                                "serviceEndpoints": [],
+                                "delegations": [],
+                                "privateEndpointNetworkPolicies": "Disabled",
+                                "privateLinkServiceNetworkPolicies": "Enabled",
+                                "defaultOutboundAccess": false,
+                                "natGateway": {
+                                    "id": "/subscriptions/Sub-id/resourceGroups/rg-spoke-avd-01/providers/Microsoft.Network/natGateways/natgw-avd-spoke"
+                                }
+                            },
+                            "type": "Microsoft.Network/virtualNetworks/subnets"
+                        }
+                    ],
+                    "virtualNetworkPeerings": [
+                        {
+                            "name": "peer-spoke-to-hub",
+                            "id": "/subscriptions/Sub-id/resourceGroups/rg-spoke-avd-01/providers/Microsoft.Network/virtualNetworks/vnet-spoke-avd-prod-01/virtualNetworkPeerings/peer-spoke-to-hub",
+                            "etag": "W/\"d305486c-73b4-4d63-a812-a241002cd77b\"",
+                            "properties": {
+                                "provisioningState": "Succeeded",
+                                "resourceGuid": "0d9158f4-04f1-0819-351c-6180a2b240af",
+                                "peeringState": "Connected",
+                                "peeringSyncLevel": "FullyInSync",
+                                "remoteVirtualNetwork": {
+                                    "id": "/subscriptions/Sub-id/resourceGroups/rg-hub-network-01/providers/Microsoft.Network/virtualNetworks/vnet-hub-prod-01"
+                                },
+                                "allowVirtualNetworkAccess": true,
+                                "allowForwardedTraffic": true,
+                                "allowGatewayTransit": false,
+                                "useRemoteGateways": false,
+                                "doNotVerifyRemoteGateways": false,
+                                "peerCompleteVnets": true,
+                                "remoteAddressSpace": {
+                                    "addressPrefixes": [
+                                        "10.200.0.0/16"
+                                    ]
+                                },
+                                "remoteVirtualNetworkAddressSpace": {
+                                    "addressPrefixes": [
+                                        "10.200.0.0/16"
+                                    ]
+                                },
+                                "routeServiceVips": {}
+                            },
+                            "type": "Microsoft.Network/virtualNetworks/virtualNetworkPeerings"
+                        }
+                    ],
+                    "enableDdosProtection": false
+                },
+                "apiVersion": "2024-10-01"
+            }
+        },
+        "virtualNetworkResourceGroup": {
+            "value": "rg-spoke-avd-01"
+        },
+        "publicIpAddressServiceTag": {
+            "value": []
+        },
+        "publicIpPrefixServiceTag": {
+            "value": []
+        }
+    }
+}

@@ -1,0 +1,89 @@
+{
+    "definition": {
+        "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+        "contentVersion": "1.0.0.0",
+        "triggers": {
+            "Microsoft_Sentinel_incident": {
+                "type": "ApiConnectionWebhook",
+                "inputs": {
+                    "host": {
+                        "connection": {
+                            "name": "@parameters('$connections')['azuresentinel']['connectionId']"
+                        }
+                    },
+                    "body": {
+                        "callback_url": "@listCallbackUrl()"
+                    },
+                    "path": "/incident-creation"
+                }
+            }
+        },
+        "actions": {
+            "Send_an_email_(V2)": {
+                "runAfter": {
+                    "Get_incident": [
+                        "Succeeded"
+                    ]
+                },
+                "type": "ApiConnection",
+                "inputs": {
+                    "host": {
+                        "connection": {
+                            "name": "@parameters('$connections')['outlook']['connectionId']"
+                        }
+                    },
+                    "method": "post",
+                    "body": {
+                        "To": "anandamquc@gmail.com",
+                        "Subject": "Sentinel Incident@{triggerBody()?['object']?['properties']?['title']}",
+                        "Body": "<p class=\"editor-paragraph\">A new security incident has been detected in you Azure environment <b><strong class=\"editor-text-bold\">law-central-secops-01</strong></b><b><strong class=\"editor-text-bold\"><br></strong></b><br>Incident details:<br>-Incident ID: @{body('Get_incident')?['properties']?['providerIncidentId']}</p><p class=\"editor-paragraph\">-Title: @{body('Get_incident')?['properties']?['title']}</p><p class=\"editor-paragraph\">Severity: @{body('Get_incident')?['properties']?['severity']}</p><p class=\"editor-paragraph\">-Description: @{body('Get_incident')?['properties']?['description']}<br><br>Please review</p>",
+                        "Importance": "Normal"
+                    },
+                    "path": "/v2/Mail"
+                }
+            },
+            "Get_incident": {
+                "runAfter": {},
+                "type": "ApiConnection",
+                "inputs": {
+                    "host": {
+                        "connection": {
+                            "name": "@parameters('$connections')['azuresentinel']['connectionId']"
+                        }
+                    },
+                    "method": "post",
+                    "body": {
+                        "incidentArmId": "@triggerBody()?['object']?['id']"
+                    },
+                    "path": "/Incidents"
+                }
+            }
+        },
+        "outputs": {},
+        "parameters": {
+            "$connections": {
+                "type": "Object",
+                "defaultValue": {}
+            }
+        }
+    },
+    "parameters": {
+        "$connections": {
+            "type": "Object",
+            "value": {
+                "azuresentinel": {
+                    "id": "/subscriptions/Sub-ID/providers/Microsoft.Web/locations/centralindia/managedApis/azuresentinel",
+                    "connectionId": "/subscriptions/Sub-ID/resourceGroups/rg-hub-network-01/providers/Microsoft.Web/connections/azuresentinel",
+                    "connectionName": "azuresentinel",
+                    "connectionProperties": {}
+                },
+                "outlook": {
+                    "id": "/subscriptions/Sub-ID/providers/Microsoft.Web/locations/centralindia/managedApis/outlook",
+                    "connectionId": "/subscriptions/Sub-ID/resourceGroups/rg-hub-network-01/providers/Microsoft.Web/connections/outlook",
+                    "connectionName": "outlook",
+                    "connectionProperties": {}
+                }
+            }
+        }
+    }
+}

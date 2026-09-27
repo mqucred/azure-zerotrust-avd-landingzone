@@ -1,0 +1,36 @@
+# ==============================================================================
+# Phase 2 & 2b: Hub-Spoke Core Architecture with a Linux NVA + On-Prem Connectivity
+# ==============================================================================
+
+Connect-AzAccount -SubscriptionId "<subscription-id>" -TenantId "<tenant-id>"
+
+# --- Phase 2b: Peerings (on-prem <-> hub <-> spoke) ---
+$vnetOnPrem = Get-AzVirtualNetwork -ResourceGroupName "rg-onprem-infra-01" -Name "vnet-onprem-prod-01"
+$vnetHub    = Get-AzVirtualNetwork -ResourceGroupName "rg-hub-network-01" -Name "vnet-hub-prod-01"
+$vnetSpoke  = Get-AzVirtualNetwork -ResourceGroupName "rg-spoke-avd-01"   -Name "vnet-spoke-avd-prod-01"
+
+Add-AzVirtualNetworkPeering -Name "peer-onprem-to-hub"   -VirtualNetwork $vnetOnPrem -RemoteVirtualNetworkId $vnetHub.Id   -AllowForwardedTraffic
+Add-AzVirtualNetworkPeering -Name "peer-hub-to-onprem"   -VirtualNetwork $vnetHub    -RemoteVirtualNetworkId $vnetOnPrem.Id -AllowForwardedTraffic
+Add-AzVirtualNetworkPeering -Name "peer-spoke-to-onprem" -VirtualNetwork $vnetSpoke  -RemoteVirtualNetworkId $vnetOnPrem.Id -AllowForwardedTraffic
+Add-AzVirtualNetworkPeering -Name "peer-onprem-to-spoke" -VirtualNetwork $vnetOnPrem -RemoteVirtualNetworkId $vnetSpoke.Id  -AllowForwardedTraffic
+
+# --- Spoke VNet DNS set to the domain controller ---
+$vnetSpoke.DhcpOptions.DnsServers = @("10.100.1.4")
+Set-AzVirtualNetwork -VirtualNetwork $vnetSpoke
+
+# --- Verification: peering state (both directions) ---
+Get-AzVirtualNetworkPeering -ResourceGroupName "rg-hub-network-01" -VirtualNetworkName "vnet-hub-prod-01" |
+    Select-Object Name, PeeringState, AllowForwardedTraffic, AllowVirtualNetworkAccess
+Get-AzVirtualNetworkPeering -ResourceGroupName "rg-spoke-avd-01" -VirtualNetworkName "vnet-spoke-avd-prod-01" |
+    Select-Object Name, PeeringState, AllowForwardedTraffic, AllowVirtualNetworkAccess
+
+# --- NVA NIC: IP forwarding check ---
+$nvaNic = Get-AzNetworkInterface -ResourceGroupName "rg-hub-network-01" -Name "vm-hub-nva-01830"
+$nvaNic.EnableIPForwarding
+
+# --- On the DC-facing connectivity test, run from avd-sh-0 (session host) ---
+# via Invoke-AzVMRunCommand or interactively on the VM:
+Resolve-DnsName contoso.local
+Test-NetConnection 10.100.1.4 -Port 389
+Test-NetConnection 10.100.1.4 -Port 445
+

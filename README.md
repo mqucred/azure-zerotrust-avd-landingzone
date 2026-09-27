@@ -108,15 +108,15 @@ Notes on what the visualizer does and does not show:
 
 | Phase | Topic | Status | Notes |
 |---|---|---|---|
-| 1 | Simulated on-prem AD DS | Done | |
-| 2 | Hub-spoke with Linux NVA | Partial | Replaced Azure Firewall for cost. NVA path does not forward spoke traffic (Phase 8) |
-| 2b | On-prem connectivity | Done (lab shortcut) | Added retroactively: direct VNet peering and DNS, because no phase linked on-prem to the hub |
-| 3 | Hybrid identity (Entra Connect) | Done | |
-| 4 | Azure Files, Kerberos, NTFS | Done | Private endpoint deferred to Phase 7 |
-| 5 | AVD host pool and FSLogix | Done | Egress uses a NAT Gateway (workaround) |
-| 6 | SecOps: PIM, Conditional Access, Sentinel, SOAR | Done | |
-| 7 | Zero-trust storage | Done | Private endpoint, private DNS, public access disabled |
-| 8 | NVA path troubleshooting | Open | Case study, escalated to Microsoft Q&A [add link] |
+| **[1](docs/phase-1-onprem-adds/README.md)** | Simulated on-prem AD DS | Done | |
+| **[2](docs/phase-2-hub-spoke-nva/README.md)** | Hub-spoke with Linux NVA | Partial | Replaced Azure Firewall for cost. NVA path does not forward spoke traffic (Phase 8) |
+| **[2b](docs/phase-2-hub-spoke-nva/README.md)** | On-prem connectivity | Done (lab shortcut) | Added retroactively: direct VNet peering and DNS, because no phase linked on-prem to the hub |
+| **[3](docs/phase-3-hybrid-identity/README.md)** | Hybrid identity (Entra Connect) | Done | |
+| **[4](docs/phase-4-azure-files/README.md)** | Azure Files, Kerberos, NTFS | Done | Private endpoint deferred to Phase 7 |
+| **[5](docs/phase-5-avd-fslogix/README.md)** | AVD host pool and FSLogix | Done | Egress uses a NAT Gateway (workaround) |
+| **[6](docs/phase-6-secops/README.md)** | SecOps: PIM, Conditional Access, Sentinel, SOAR | Done | |
+| **[7](docs/phase-7-zerotrust-storage/README.md)** | Zero-trust storage | Done | Private endpoint, private DNS, public access disabled |
+| **[8](docs/phase-8-nva-troubleshooting/README.md)** | NVA path troubleshooting | Open | Case study, escalated to Microsoft Q&A [add link] |
 
 ## How this differs from the original plan
 
@@ -171,15 +171,3 @@ than smoothed over:
 Tenant name, email addresses, subscription and tenant IDs, and any credentials are blurred or
 removed. No keys, tokens or passwords are committed.
 
-
-
----
-Before you commit it:
-
--The repo description on GitHub should match the top line here, not the original ("Production-ready... eBGP"). Change it in the repo settings.
-
--The architecture diagram matters most. The one from Gemini shows Azure Firewall and a VPN gateway you didn't build. Draw a new one from the table above.
-
--Check "Status: Done" claims against your evidence. I marked Phase 7 done on the strength of the private-path checks, the disabled setting and your morning sign-in, and Phase 6 done including the playbook. If any of those screenshots is missing, downgrade the row.
-
--Replace the bracketed items (the diagram, the Q&A link, your repo layout).

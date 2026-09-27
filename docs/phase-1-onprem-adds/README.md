@@ -95,4 +95,4 @@ anything in this VNet resolves `contoso.local`.
 - A phase that passes its own checks can still leave a dependency out. Nothing here needed a
   link to Azure, so nothing flagged that none existed.
 - Give the domain controller a static IP before pointing DNS at it.
-- Record the exact resource names as built. Later phases, scripts and screenshots all depend on them.
+
