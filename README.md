@@ -152,7 +152,6 @@ than smoothed over:
 
 ## Repository layout
 
-[Adjust to your real structure]
 
     docs/
       phase-1-onprem-adds/README.md
