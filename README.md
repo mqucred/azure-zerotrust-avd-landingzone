@@ -116,7 +116,7 @@ Notes on what the visualizer does and does not show:
 | **[5](docs/phase-5-avd-fslogix/README.md)** | AVD host pool and FSLogix | Done | Egress uses a NAT Gateway (workaround) |
 | **[6](docs/phase-6-secops/README.md)** | SecOps: PIM, Conditional Access, Sentinel, SOAR | Done | |
 | **[7](docs/phase-7-zerotrust-storage/README.md)** | Zero-trust storage | Done | Private endpoint, private DNS, public access disabled |
-| **[8](docs/phase-8-nva-troubleshooting/README.md)** | NVA path troubleshooting | Open | Case study, escalated to Microsoft Q&A [add link] |
+| **[8](docs/phase-8-nva-troubleshooting/README.md)** | NVA path troubleshooting | Open | Case study, escalated to Microsoft Q&A [LINK](https://learn.microsoft.com/en-us/answers/questions/6016649/udr-next-hop-to-an-nva-in-a-peered-hub-vnet-packet) |
 
 ## How this differs from the original plan
 
