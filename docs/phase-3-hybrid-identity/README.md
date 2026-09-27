@@ -101,11 +101,6 @@ FSLogix profile. None of that works without a working sync.
 - **Group membership drives access:** `grp-avd-users` syncs to Entra ID, and it is the target
   of the Conditional Access MFA policy and the AVD application group assignment.
 
-## Issues and fixes
-
-| Issue | Cause | Fix |
-|---|---|---|
-| [Add any you hit during install] | | |
 
 ## Known limitations
 
