@@ -155,16 +155,26 @@ the same result.
 - A redeploy of the NVA was attempted before the deallocate/start test and was refused
   because the VM was stopped; start-after-deallocate was used instead.
 
+
 ## What I would try next
 
-1. Repeat the paired capture with both sides started before the test and stopped after it,
-   several attempts per run.
-2. Replace the NVA with a fresh VM (different size, ideally with accelerated networking) in the
-   same subnet and repeat the test.
-3. Test with a two-NIC NVA design (inside and outside interfaces).
-4. Compare against Azure Firewall or a route through a VPN gateway, to see whether the fault is
-   specific to a single-NIC NVA in a peered hub.
-5. If Microsoft Q&A produces a lead, record it here.
+Ordered by cost, cheapest first. I stopped here because the remaining steps each need a
+redesign or a paid service, and the environment was torn down before I could run the cheap ones.
+
+1. **Direct spoke-to-NVA baseline** (no UDR next hop): connect from the spoke VM to the NVA's
+   private IP with a paired capture. It separates a peering-level fault from a UDR-handoff
+   fault. Suggested in the Microsoft Q&A thread. Cost: minutes.
+2. **Repeat the paired capture with both sides started before the test**, several attempts per
+   run, to remove any timing doubt. Cost: minutes.
+3. **Replace the NVA with a fresh VM** (different size, with accelerated networking) in the same
+   subnet and repeat. Cost: a small VM and a reconfiguration.
+4. **Two-NIC NVA design** (inside and outside interfaces). Cost: a hub redesign.
+5. **Compare against Azure Firewall or a VPN gateway**, to see whether the fault is specific to
+   a single-NIC NVA in a peered hub. Cost: a paid service, which the design avoided on purpose.
+
+Steps 3 to 5 change the design rather than test the existing one, so the value of running them
+depends on what steps 1 and 2 show.
+
 
 ## Workaround
 
